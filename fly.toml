@@ -12,6 +12,7 @@ primary_region = 'sjc'
   DISABLE_TELEMETRY = 'debug'
   IS_CLOUD = 'false'
   IS_MULTI_ORG = 'true'
+  JWT_SECRET='123123123'
 
 [[services]]
   protocol = 'tcp'
