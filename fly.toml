@@ -11,7 +11,7 @@ primary_region = 'sjc'
   ALLOW_SELF_ORG_CREATION = 'true'
   DISABLE_TELEMETRY = 'debug'
   IS_CLOUD = 'false'
-  IS_MULTI_ORG = 'true'
+  IS_MULTI_ORG = 'false'
   JWT_SECRET='123123123'
 
 [[services]]
