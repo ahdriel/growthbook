@@ -10,11 +10,11 @@ on:
       - "yarn.lock"
       - "Dockerfile"
       - ".dockerignore"
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, reopened, closed, synchronize, ready_for_review, labeled]
 
 jobs:
   preview:
-    if: ${{ github.event.pull_request.draft == false }}
+    if: ${{ github.repository == 'growthbook/growthbook' && contains(github.event.pull_request.labels.*.name, 'preview') }}
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deploy.outputs.url }}
@@ -44,7 +44,7 @@ jobs:
           secrets:
             APP_ORIGIN=https://pr-${{ github.event.number }}-growthbook.fly.dev
             API_HOST=https://pr-${{ github.event.number }}-growthbook.fly.dev:4433
-            MONGODB_URI=${{ secrets.MONGODB_URI }}
+            MONGODB_URI=${{ secrets.MONGODB_URI_STAGING }}
 
       - name: Allocate public IP
         run: flyctl ips allocate-v4 --shared -a pr-${{ github.event.number }}-growthbook
