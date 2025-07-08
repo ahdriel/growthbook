@@ -18,7 +18,7 @@ import {
   getSavedGroupMap,
   updateInterfaceEnvSettingsFromApiEnvSettings,
 } from "back-end/src/services/features";
-import { FeatureInterface } from "back-end/types/feature";
+import { FeatureInterface, FeatureEnvironment } from "back-end/types/feature";
 import { getEnabledEnvironments } from "back-end/src/util/features";
 import { addTagsDiff } from "back-end/src/models/TagModel";
 import { auditDetailsUpdate } from "back-end/src/services/audit";
@@ -29,7 +29,66 @@ import {
 import { FeatureRevisionInterface } from "back-end/types/feature-revision";
 import { getEnvironmentIdsFromOrg } from "back-end/src/services/organizations";
 import { RevisionRules } from "back-end/src/validators/features";
+import { 
+  getExperimentById, 
+  updateExperiment 
+} from "back-end/src/models/ExperimentModel";
 import { parseJsonSchemaForEnterprise, validateEnvKeys } from "./postFeature";
+
+/**
+ * Updates the condition of an experiment-ref rule by updating the underlying experiment's condition
+ */
+async function updateExperimentConditionForExperimentRef(
+  req: any,
+  experimentId: string,
+  newCondition: string
+): Promise<void> {
+  const experiment = await getExperimentById(req.context, experimentId);
+  if (!experiment) {
+    throw new Error(`Experiment '${experimentId}' not found`);
+  }
+
+  // Check if user has permission to update the experiment
+  if (!req.context.permissions.canUpdateExperiment(experiment, { condition: newCondition })) {
+    throw new Error(`You don't have permission to update experiment '${experimentId}'`);
+  }
+
+  // Get the current/last phase (active phase)
+  const currentPhaseIndex = experiment.phases.length - 1;
+  const currentPhase = experiment.phases[currentPhaseIndex];
+  
+  if (!currentPhase) {
+    throw new Error(`No active phase found for experiment '${experimentId}'`);
+  }
+
+  // Only update if the condition has actually changed
+  if (currentPhase.condition !== newCondition) {
+    const phases = [...experiment.phases];
+    phases[currentPhaseIndex] = {
+      ...currentPhase,
+      condition: newCondition,
+    };
+
+    await updateExperiment({
+      context: req.context,
+      experiment,
+      changes: { phases },
+    });
+
+    // Log the audit event for the experiment update
+    await req.audit({
+      event: "experiment.update",
+      entity: {
+        object: "experiment",
+        id: experiment.id,
+      },
+      details: {
+        pre: { condition: currentPhase.condition },
+        post: { condition: newCondition },
+      },
+    });
+  }
+}
 
 export const updateFeature = createApiRequestHandler(updateFeatureValidator)(
   async (req): Promise<UpdateFeatureResponse> => {
@@ -89,9 +148,9 @@ export const updateFeature = createApiRequestHandler(updateFeatureValidator)(
     // Validate scheduleRules before processing environment settings
     if (req.body.environments) {
       Object.entries(req.body.environments).forEach(
-        ([envName, envSettings]) => {
+        ([envName, envSettings]: [string, any]) => {
           if (envSettings.rules) {
-            envSettings.rules.forEach((rule, ruleIndex) => {
+            envSettings.rules.forEach((rule: any, ruleIndex: number) => {
               if (rule.scheduleRules) {
                 // Validate that the org has access to schedule rules
                 if (!req.context.hasPremiumFeature("schedule-feature-flag")) {
@@ -121,6 +180,36 @@ export const updateFeature = createApiRequestHandler(updateFeatureValidator)(
       defaultValue = validateFeatureValue(feature, req.body.defaultValue);
     }
 
+    // Handle experiment-ref condition updates before processing environment settings
+    if (req.body.environments) {
+      for (const [envName, envSettings] of Object.entries(req.body.environments)) {
+        const envSettingsTyped = envSettings as any;
+        if (envSettingsTyped.rules) {
+          const originalEnvSetting = feature.environmentSettings?.[envName];
+          
+          for (let i = 0; i < envSettingsTyped.rules.length; i++) {
+            const newRule = envSettingsTyped.rules[i];
+            const oldRule = originalEnvSetting?.rules[i];
+            
+            if (
+              newRule.type === "experiment-ref" &&
+              oldRule?.type === "experiment-ref" &&
+              newRule.experimentId === oldRule.experimentId &&
+              newRule.condition !== oldRule.condition &&
+              newRule.condition !== undefined
+            ) {
+              // Update the underlying experiment's condition
+              await updateExperimentConditionForExperimentRef(
+                req,
+                newRule.experimentId,
+                newRule.condition
+              );
+            }
+          }
+        }
+      }
+    }
+
     const environmentSettings =
       req.body.environments != null
         ? updateInterfaceEnvSettingsFromApiEnvSettings(
@@ -131,7 +220,7 @@ export const updateFeature = createApiRequestHandler(updateFeatureValidator)(
 
     const prerequisites =
       req.body.prerequisites != null
-        ? req.body.prerequisites?.map((p) => ({
+        ? req.body.prerequisites?.map((p: string) => ({
             id: p,
             condition: `{"value": true}`,
           }))
@@ -187,7 +276,7 @@ export const updateFeature = createApiRequestHandler(updateFeatureValidator)(
       const revisedRules: RevisionRules = {};
 
       // Copy over current envSettings to revision as this endpoint support partial updates
-      Object.entries(feature.environmentSettings).forEach(([env, settings]) => {
+      Object.entries(feature.environmentSettings).forEach(([env, settings]: [string, FeatureEnvironment]) => {
         revisedRules[env] = settings.rules;
       });
 
@@ -202,7 +291,7 @@ export const updateFeature = createApiRequestHandler(updateFeatureValidator)(
       }
       if (updates.environmentSettings) {
         Object.entries(updates.environmentSettings).forEach(
-          ([env, settings]) => {
+          ([env, settings]: [string, FeatureEnvironment]) => {
             if (
               !isEqual(
                 settings.rules,
