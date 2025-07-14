@@ -10,7 +10,7 @@
 - **Test Command**: `jest --forceExit --verbose --detectOpenHandles`
 
 ### Current Test Structure:
-- **Total Test Files**: ~20+ test files
+- **Total Test Files**: 39 test files
 - **Main Test Categories**:
   - Root level tests: billing, enterprise, features, license, migrations, etc.
   - API tests: `/test/api/` (8 files)
@@ -53,19 +53,19 @@
   - [x] `/test/api/attributes.test.ts` (with mocks) ✅
   - [x] `/test/api/environments.test.ts` (with mocks) ✅
   - [x] `/test/api/features.test.ts` (partially migrated, has type issues) ⚠️
-  - [ ] `/test/billing.test.ts` (complex mocking)
+  - [x] `/test/billing.test.ts` (complex mocking with timers) ✅
   - [ ] `/test/features.test.ts` (large file, 44KB)
   - [ ] `/test/license.test.ts` (large file, 50KB)
   - [ ] `/test/migrations.test.ts` (large file, 48KB)
   - [ ] `/test/permissions.test.ts` (very large file, 175KB)
   - [ ] API tests directory: `/test/api/`
-    - [ ] `api.setup.ts`
+    - [x] `api.setup.ts` (critical setup file) ✅
     - [x] `sdk-connections.test.ts` (with complex mocks) ✅
   - [ ] Services tests directory: `/test/services/`
-    - [ ] `experiments.test.ts`
+    - [x] `experiments.test.ts` (utility tests) ✅
   - [ ] Models tests directory: `/test/models/`
     - [ ] `BaseModel.test.ts`
-    - [ ] `dataSourceModel.test.ts`
+    - [x] `dataSourceModel.test.ts` (with mocks) ✅
   - [ ] Other test directories and files
 
 ### Phase 3: Mocking Updates ✅
@@ -123,7 +123,7 @@
 ## Progress Tracking
 
 - **Phase 1**: ✅ Complete
-- **Phase 2**: 🔄 In Progress (16/25+ files migrated)
+- **Phase 2**: 🔄 In Progress (20/39 files migrated)
 - **Phase 3**: ✅ Complete (patterns established)
 - **Phase 4**: ⏳ Pending
 - **Phase 5**: ⏳ Pending
