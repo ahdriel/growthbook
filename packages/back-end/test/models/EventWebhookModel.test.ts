@@ -1,3 +1,4 @@
+import { describe, it, expect, vi } from "vitest";
 import {
   EventWebHookModel,
   getAllEventWebHooksForEvent,
@@ -6,7 +7,7 @@ import {
 describe("getAllEventWebHooksForEvent", () => {
   describe("when event has no projects", () => {
     it("implements the right logic", async () => {
-      jest.spyOn(EventWebHookModel, "find").mockImplementation(() => [
+      vi.spyOn(EventWebHookModel, "find").mockImplementation(() => [
         {
           toJSON: () => ({ name: "webhook with no filter on projects" }),
           projects: [],
@@ -19,7 +20,7 @@ describe("getAllEventWebHooksForEvent", () => {
           toJSON: () => ({ name: "webhook with filter for foo project" }),
           projects: ["foo"],
         },
-      ]);
+      ] as any);
 
       const ret = await getAllEventWebHooksForEvent({
         organizationId: "aabb",
@@ -50,7 +51,7 @@ describe("getAllEventWebHooksForEvent", () => {
 
   describe("when event has projects", () => {
     it("implements the right logic", async () => {
-      jest.spyOn(EventWebHookModel, "find").mockImplementation(() => [
+      vi.spyOn(EventWebHookModel, "find").mockImplementation(() => [
         {
           toJSON: () => ({ name: "webhook with no filter on projects" }),
           projects: [],
@@ -69,7 +70,7 @@ describe("getAllEventWebHooksForEvent", () => {
           }),
           projects: ["foo"],
         },
-      ]);
+      ] as any);
 
       const ret = await getAllEventWebHooksForEvent({
         organizationId: "aabb",
