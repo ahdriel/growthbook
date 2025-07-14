@@ -140,7 +140,7 @@ describe("features API", () => {
         },
         models: {
           safeRollout: {
-            getAllPayloadSafeRollouts: jest.fn().mockResolvedValue(new Map()),
+            getAllPayloadSafeRollouts: vi.fn().mockResolvedValue(new Map()),
           },
         },
         permissions: {
@@ -181,7 +181,7 @@ describe("features API", () => {
         },
         models: {
           safeRollout: {
-            getAllPayloadSafeRollouts: jest.fn().mockResolvedValue(new Map()),
+            getAllPayloadSafeRollouts: vi.fn().mockResolvedValue(new Map()),
           },
         },
         permissions: {
@@ -247,7 +247,7 @@ describe("features API", () => {
         },
         models: {
           safeRollout: {
-            getAllPayloadSafeRollouts: jest.fn().mockResolvedValue(new Map()),
+            getAllPayloadSafeRollouts: vi.fn().mockResolvedValue(new Map()),
           },
         },
         permissions: {

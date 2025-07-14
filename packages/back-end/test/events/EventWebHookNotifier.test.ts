@@ -1,26 +1,30 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventWebHookNotifier } from "back-end/src/events/handlers/webhooks/EventWebHookNotifier";
 import { getEventWebHookSignatureForPayload } from "back-end/src/events/handlers/webhooks/event-webhooks-utils";
 import { cancellableFetch } from "back-end/src/util/http.util";
 import { secretsReplacer } from "back-end/src/util/secrets";
 
-jest.mock("back-end/src/events/handlers/webhooks/event-webhooks-utils", () => ({
-  getEventWebHookSignatureForPayload: jest.fn(),
+vi.mock("back-end/src/events/handlers/webhooks/event-webhooks-utils", () => ({
+  getEventWebHookSignatureForPayload: vi.fn(),
 }));
 
-jest.mock("back-end/src/util/http.util", () => ({
-  cancellableFetch: jest.fn(),
+vi.mock("back-end/src/util/http.util", () => ({
+  cancellableFetch: vi.fn(),
 }));
+
+const mockGetEventWebHookSignatureForPayload = vi.mocked(getEventWebHookSignatureForPayload);
+const mockCancellableFetch = vi.mocked(cancellableFetch);
 
 const applySecrets = secretsReplacer({});
 
 describe("EventWebHookNotifier", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("sends data to webhook", async () => {
-    getEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
-    cancellableFetch.mockReturnValueOnce({
+    mockGetEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
+    mockCancellableFetch.mockReturnValueOnce({
       responseWithoutBody: { ok: true, status: "all's good" },
       stringBody: "the response body",
     });
@@ -56,8 +60,8 @@ describe("EventWebHookNotifier", () => {
   });
 
   it("returns an an error when request fails", async () => {
-    getEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
-    cancellableFetch.mockReturnValueOnce({
+    mockGetEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
+    mockCancellableFetch.mockReturnValueOnce({
       responseWithoutBody: {
         ok: false,
         status: "sorry dude",
@@ -97,8 +101,8 @@ describe("EventWebHookNotifier", () => {
   });
 
   it("supports custom methods", async () => {
-    getEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
-    cancellableFetch.mockReturnValueOnce({
+    mockGetEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
+    mockCancellableFetch.mockReturnValueOnce({
       responseWithoutBody: { ok: true, status: "all's good" },
       stringBody: "the response body",
     });
@@ -134,8 +138,8 @@ describe("EventWebHookNotifier", () => {
   });
 
   it("supports custom headers", async () => {
-    getEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
-    cancellableFetch.mockReturnValueOnce({
+    mockGetEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
+    mockCancellableFetch.mockReturnValueOnce({
       responseWithoutBody: { ok: true, status: "all's good" },
       stringBody: "the response body",
     });
@@ -173,8 +177,8 @@ describe("EventWebHookNotifier", () => {
   });
 
   it("supports custom headers with secrets", async () => {
-    getEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
-    cancellableFetch.mockReturnValueOnce({
+    mockGetEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
+    mockCancellableFetch.mockReturnValueOnce({
       responseWithoutBody: { ok: true, status: "all's good" },
       stringBody: "the response body",
     });
@@ -211,8 +215,8 @@ describe("EventWebHookNotifier", () => {
   });
 
   it("supports custom headers with secrets containing quotation marks", async () => {
-    getEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
-    cancellableFetch.mockReturnValueOnce({
+    mockGetEventWebHookSignatureForPayload.mockReturnValueOnce("some-signature");
+    mockCancellableFetch.mockReturnValueOnce({
       responseWithoutBody: { ok: true, status: "all's good" },
       stringBody: "the response body",
     });
