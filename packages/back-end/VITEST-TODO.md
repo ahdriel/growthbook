@@ -123,7 +123,7 @@
 ## Progress Tracking
 
 - **Phase 1**: ✅ Complete
-- **Phase 2**: 🔄 In Progress (7/25+ files migrated)
+- **Phase 2**: 🔄 In Progress (11/25+ files migrated)
 - **Phase 3**: ✅ Complete (patterns established)
 - **Phase 4**: ⏳ Pending
 - **Phase 5**: ⏳ Pending
@@ -138,6 +138,10 @@
 5. `test/api/snapshots.test.ts` - Complex test with mocks and async functions
 6. `test/models/EventWebhookModel.test.ts` - Test with spies and type casting
 7. `test/services/experimentNotifications.test.ts` - Test with mocks and type safety
+8. `test/models/VisualChangesetModel.test.ts` - Test with mocks and beforeEach
+9. `test/api/projects.test.ts` - API test with multiple jest.fn() calls  
+10. `test/services/datasource.test.ts` - Service test with complex mocking patterns
+11. `test/api/sdk-connections-validations.test.ts` - API test with module mocks
 
 ### Migration Patterns Used:
 - **Basic imports**: `import { describe, it, expect, vi } from "vitest";`
