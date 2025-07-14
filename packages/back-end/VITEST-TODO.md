@@ -45,26 +45,26 @@
   - [x] `/test/api/snapshots.test.ts` (with mocks) ✅
   - [x] `/test/models/EventWebhookModel.test.ts` (with spies) ✅
   - [x] `/test/services/experimentNotifications.test.ts` (with mocks) ✅
+  - [x] `/test/models/VisualChangesetModel.test.ts` (with mocks) ✅
+  - [x] `/test/api/projects.test.ts` (with mocks) ✅
+  - [x] `/test/services/datasource.test.ts` (with mocks) ✅
+  - [x] `/test/api/sdk-connections-validations.test.ts` (with mocks) ✅
+  - [x] `/test/prerequisites.test.ts` (imports only, has type issues) ⚠️
+  - [x] `/test/api/attributes.test.ts` (with mocks) ✅
+  - [x] `/test/api/environments.test.ts` (with mocks) ✅
+  - [x] `/test/api/features.test.ts` (partially migrated, has type issues) ⚠️
   - [ ] `/test/billing.test.ts` (complex mocking)
   - [ ] `/test/features.test.ts` (large file, 44KB)
   - [ ] `/test/license.test.ts` (large file, 50KB)
   - [ ] `/test/migrations.test.ts` (large file, 48KB)
   - [ ] `/test/permissions.test.ts` (very large file, 175KB)
-  - [ ] `/test/prerequisites.test.ts`
   - [ ] API tests directory: `/test/api/`
     - [ ] `api.setup.ts`
-    - [ ] `attributes.test.ts`
-    - [ ] `environments.test.ts`
-    - [ ] `features.test.ts`
-    - [ ] `projects.test.ts`
-    - [ ] `sdk-connections-validations.test.ts`
-    - [ ] `sdk-connections.test.ts`
+    - [x] `sdk-connections.test.ts` (with complex mocks) ✅
   - [ ] Services tests directory: `/test/services/`
-    - [ ] `datasource.test.ts`
     - [ ] `experiments.test.ts`
   - [ ] Models tests directory: `/test/models/`
     - [ ] `BaseModel.test.ts`
-    - [ ] `VisualChangesetModel.test.ts`
     - [ ] `dataSourceModel.test.ts`
   - [ ] Other test directories and files
 
@@ -123,7 +123,7 @@
 ## Progress Tracking
 
 - **Phase 1**: ✅ Complete
-- **Phase 2**: 🔄 In Progress (11/25+ files migrated)
+- **Phase 2**: 🔄 In Progress (16/25+ files migrated)
 - **Phase 3**: ✅ Complete (patterns established)
 - **Phase 4**: ⏳ Pending
 - **Phase 5**: ⏳ Pending
