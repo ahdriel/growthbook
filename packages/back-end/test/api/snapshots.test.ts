@@ -45,7 +45,9 @@ describe("snapshots API", () => {
     });
 
     mockFindSnapshotById.mockResolvedValueOnce(snapshot);
-    mockGetExperimentById.mockResolvedValueOnce({ id: snapshot.experiment } as any);
+    mockGetExperimentById.mockResolvedValueOnce({
+      id: snapshot.experiment,
+    });
 
     const response = await request(app)
       .get("/api/v1/snapshots/snp_1")
@@ -137,8 +139,8 @@ describe("snapshots API", () => {
     mockGetExperimentById.mockResolvedValueOnce({
       id: snapshot.experiment,
       datasource: "ds_123",
-    } as any);
-    mockGetDataSourceById.mockResolvedValueOnce({ id: "ds_123" } as any);
+    });
+    mockGetDataSourceById.mockResolvedValueOnce({ id: "ds_123" });
 
     const response = await request(app)
       .post(`/api/v1/experiments/${snapshot.experiment}/snapshot`)

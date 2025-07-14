@@ -19,7 +19,6 @@ vi.mock("back-end/src/models/EventModel", () => ({
 
 const mockGetUserByEmail = vi.mocked(getUserByEmail);
 const mockFindOrganizationsByMemberId = vi.mocked(findOrganizationsByMemberId);
-const mockCreateEventWithPayload = vi.mocked(createEventWithPayload);
 
 describe("user events", () => {
   const org = { id: "org", environments: [{ id: "production" }] };

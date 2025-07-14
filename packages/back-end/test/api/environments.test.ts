@@ -7,8 +7,6 @@ vi.mock("back-end/src/models/OrganizationModel", () => ({
   updateOrganization: vi.fn(),
 }));
 
-const mockUpdateOrganization = vi.mocked(updateOrganization);
-
 describe("environements API", () => {
   const { app, auditMock, setReqContext } = setupApp();
 

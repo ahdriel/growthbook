@@ -25,13 +25,13 @@ vi.mock("back-end/src/api/sdk-connections/validations", () => ({
   validatePostPayload: vi.fn(),
 }));
 
-const originalValidatePutPayload = (await vi.importActual(
-  "back-end/src/api/sdk-connections/validations"
-) as any).validatePutPayload;
+const originalValidatePutPayload = (
+  await vi.importActual("back-end/src/api/sdk-connections/validations")
+).validatePutPayload;
 
-const originalValidatePostPayload = (await vi.importActual(
-  "back-end/src/api/sdk-connections/validations"
-) as any).validatePostPayload;
+const originalValidatePostPayload = (
+  await vi.importActual("back-end/src/api/sdk-connections/validations")
+).validatePostPayload;
 
 vi.mock("back-end/src/models/SdkConnectionModel", () => ({
   toApiSDKConnectionInterface: vi.fn(),

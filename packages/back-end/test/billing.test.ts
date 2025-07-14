@@ -98,9 +98,7 @@ describe("getUsage", () => {
 
     describe("pro plan", () => {
       beforeEach(() => {
-        vi.mocked(licenseUtil.getEffectiveAccountPlan).mockReturnValue(
-          "pro"
-        );
+        vi.mocked(licenseUtil.getEffectiveAccountPlan).mockReturnValue("pro");
       });
 
       it("should return UNLIMITED_USAGE for plans with unlimited usage", async () => {

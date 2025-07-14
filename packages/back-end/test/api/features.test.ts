@@ -34,11 +34,12 @@ vi.mock("back-end/src/services/features", () => ({
 
 const mockGetFeature = vi.mocked(getFeature);
 const mockCreateFeature = vi.mocked(createFeature);
-const mockUpdateFeature = vi.mocked(updateFeature);
 const mockAddTags = vi.mocked(addTags);
 const mockGetSavedGroupMap = vi.mocked(getSavedGroupMap);
 const mockGetApiFeatureObj = vi.mocked(getApiFeatureObj);
-const mockCreateInterfaceEnvSettingsFromApiEnvSettings = vi.mocked(createInterfaceEnvSettingsFromApiEnvSettings);
+const mockCreateInterfaceEnvSettingsFromApiEnvSettings = vi.mocked(
+  createInterfaceEnvSettingsFromApiEnvSettings
+);
 
 describe("features API", () => {
   const { app, auditMock, setReqContext } = setupApp();

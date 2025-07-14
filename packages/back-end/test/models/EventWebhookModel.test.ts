@@ -20,7 +20,7 @@ describe("getAllEventWebHooksForEvent", () => {
           toJSON: () => ({ name: "webhook with filter for foo project" }),
           projects: ["foo"],
         },
-      ] as any);
+      ]);
 
       const ret = await getAllEventWebHooksForEvent({
         organizationId: "aabb",
@@ -51,26 +51,29 @@ describe("getAllEventWebHooksForEvent", () => {
 
   describe("when event has projects", () => {
     it("implements the right logic", async () => {
-      vi.spyOn(EventWebHookModel, "find").mockImplementation(() => [
-        {
-          toJSON: () => ({ name: "webhook with no filter on projects" }),
-          projects: [],
-        },
-        {
-          toJSON: () => ({
-            name: "webhook with filter for event project",
-            projects: ["event project"],
-          }),
-          projects: ["event project"],
-        },
-        {
-          toJSON: () => ({
-            name: "webhook with filter for foo projects",
-            projects: ["foo"],
-          }),
-          projects: ["foo"],
-        },
-      ] as any);
+      vi.spyOn(EventWebHookModel, "find").mockImplementation(
+        () =>
+          [
+            {
+              toJSON: () => ({ name: "webhook with no filter on projects" }),
+              projects: [],
+            },
+            {
+              toJSON: () => ({
+                name: "webhook with filter for event project",
+                projects: ["event project"],
+              }),
+              projects: ["event project"],
+            },
+            {
+              toJSON: () => ({
+                name: "webhook with filter for foo projects",
+                projects: ["foo"],
+              }),
+              projects: ["foo"],
+            },
+          ] as any
+      );
 
       const ret = await getAllEventWebHooksForEvent({
         organizationId: "aabb",
