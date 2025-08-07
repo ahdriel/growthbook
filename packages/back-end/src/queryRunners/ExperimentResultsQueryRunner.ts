@@ -76,6 +76,7 @@ export type ExperimentResultsQueryParams = {
 export const TRAFFIC_QUERY_NAME = "traffic";
 
 export const UNITS_TABLE_PREFIX = "growthbook_tmp_units";
+export const UNITS_CACHE_TABLE_PREFIX = "growthbook_cache_units";
 
 export const MAX_METRICS_PER_QUERY = 20;
 
@@ -226,6 +227,14 @@ export const startExperimentResultQueries = async (
       !!settings.pipelineSettings?.writeDataset &&
       hasPipelineModeFeature) ??
     false;
+
+  // Persistent exposure units cache table (incremental refresh)
+  const useUnitsCacheTable =
+    (integration.getSourceProperties().supportsWritingTables &&
+      settings.pipelineSettings?.allowWriting &&
+      !!settings.pipelineSettings?.writeDataset &&
+      hasPipelineModeFeature) ??
+    false;
   let unitQuery: QueryPointer | null = null;
   const unitsTableFullName =
     useUnitsTable && !!integration.generateTablePath
@@ -236,6 +245,18 @@ export const startExperimentResultQueries = async (
           true
         )
       : "";
+
+  // Persistent cache table has a stable name across runs (per exposureQuery/experiment)
+  const unitsCacheTableFullName =
+    useUnitsCacheTable && !!integration.generateTablePath
+      ? integration.generateTablePath(
+          `${UNITS_CACHE_TABLE_PREFIX}_${snapshotSettings.exposureQueryId}_${snapshotSettings.experimentId}`,
+          settings.pipelineSettings?.writeDataset,
+          settings.pipelineSettings?.writeDatabase,
+          true
+        )
+      : "";
+  const unitsCacheTableName = `${UNITS_CACHE_TABLE_PREFIX}_${snapshotSettings.exposureQueryId}_${snapshotSettings.experimentId}`;
 
   // Settings for health query
   const runTrafficQuery = !dimensionObj && org.settings?.runHealthTrafficQuery;
@@ -259,6 +280,23 @@ export const startExperimentResultQueries = async (
     includeIdJoins: true,
     factTableMap: params.factTableMap,
   };
+
+  // If a persistent cache table is configured, ensure it exists/updated and prefer it for downstream queries
+  let useCacheForUnits = false;
+  let cacheTableExists = false;
+  if (useUnitsCacheTable && unitsCacheTableFullName) {
+    try {
+      const info = await (integration as SqlIntegration).getTableData(
+        settings.pipelineSettings?.writeDatabase || "",
+        settings.pipelineSettings?.writeDataset || "",
+        unitsCacheTableName
+      );
+      cacheTableExists = Array.isArray(info.tableData) && info.tableData.length > 0;
+    } catch (e) {
+      cacheTableExists = false;
+    }
+    useCacheForUnits = cacheTableExists;
+  }
 
   if (useUnitsTable) {
     // The Mixpanel integration does not support writing tables
@@ -305,8 +343,8 @@ export const startExperimentResultQueries = async (
       metric: m,
       segment: segmentObj,
       settings: snapshotSettings,
-      unitsSource: unitQuery ? "exposureTable" : "exposureQuery",
-      unitsTableFullName: unitsTableFullName,
+      unitsSource: unitQuery ? "exposureTable" : useCacheForUnits ? "exposureTable" : "exposureQuery",
+      unitsTableFullName: unitQuery ? unitsTableFullName : useCacheForUnits ? unitsCacheTableFullName : unitsTableFullName,
       factTableMap: params.factTableMap,
     };
     queries.push(
@@ -329,8 +367,8 @@ export const startExperimentResultQueries = async (
       metrics: m,
       segment: segmentObj,
       settings: snapshotSettings,
-      unitsSource: unitQuery ? "exposureTable" : "exposureQuery",
-      unitsTableFullName: unitsTableFullName,
+      unitsSource: unitQuery ? "exposureTable" : useCacheForUnits ? "exposureTable" : "exposureQuery",
+      unitsTableFullName: unitQuery ? unitsTableFullName : useCacheForUnits ? unitsCacheTableFullName : unitsTableFullName,
       factTableMap: params.factTableMap,
     };
 
@@ -364,7 +402,8 @@ export const startExperimentResultQueries = async (
       query: integration.getExperimentAggregateUnitsQuery({
         ...unitQueryParams,
         dimensions: dimensionsForTraffic,
-        useUnitsTable: !!unitQuery,
+        useUnitsTable: !!unitQuery || useCacheForUnits,
+        unitsTableFullName: unitQuery ? unitsTableFullName : useCacheForUnits ? unitsCacheTableFullName : unitsTableFullName,
       }),
       dependencies: unitQuery ? [unitQuery.query] : [],
       run: (query, setExternalId) =>
@@ -393,6 +432,25 @@ export const startExperimentResultQueries = async (
       queryType: "experimentDropUnitsTable",
     });
     queries.push(dropUnitsTableQuery);
+  }
+
+  // Create or update persistent exposure units cache table at the end
+  if (useUnitsCacheTable && unitsCacheTableFullName) {
+    const cacheUpdateQuery = await startQuery({
+      name: `update_cache_${queryParentId}`,
+      query: (integration as SqlIntegration).getCreateOrUpdateExperimentUnitsCacheQuery({
+        ...unitQueryParams,
+        fullTablePath: unitsCacheTableFullName,
+        tableExists: cacheTableExists,
+      } as any),
+      dependencies: [],
+      runAtEnd: true,
+      run: (query, setExternalId) =>
+        (integration as SqlIntegration).runExperimentUnitsQuery(query, setExternalId),
+      process: (rows) => rows,
+      queryType: "experimentUnitsCacheUpdate",
+    });
+    queries.push(cacheUpdateQuery);
   }
 
   return queries;
