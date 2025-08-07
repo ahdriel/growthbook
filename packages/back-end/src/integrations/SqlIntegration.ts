@@ -803,8 +803,8 @@ export default abstract class SqlIntegration
     ratioMetric: boolean
   ): string {
     return `, COUNT(*) as units
-            , SUM(${finalValueColumn}) as main_sum
-            , SUM(POWER(${finalValueColumn}, 2)) as main_sum_squares
+            , SUM(${finalValueColumn}) as main_sum,
+            SUM(POWER(${finalValueColumn}, 2)) as main_sum_squares
             ${
               ratioMetric
                 ? `
@@ -1796,6 +1796,111 @@ export default abstract class SqlIntegration
       WITH
         ${this.getExperimentUnitsQuery(params)}
       SELECT * FROM __experimentUnits
+    );
+    `,
+      this.getFormatDialect()
+    );
+  }
+
+  getIncrementalExperimentUnitsTableQuery(
+    params: ExperimentUnitsQueryParams & {
+      existingUnitsTableFullName: string;
+      lookbackStart: Date;
+    }
+  ): string {
+    // Scope the units computation to just the lookback window for new units
+    const scopedParams: ExperimentUnitsQueryParams = {
+      ...params,
+      settings: {
+        ...params.settings,
+        startDate:
+          params.settings.startDate > params.lookbackStart
+            ? params.settings.startDate
+            : params.lookbackStart,
+      },
+    } as ExperimentUnitsQueryParams;
+
+    const { settings } = scopedParams;
+
+    // Determine dimensions to align columns across old/new
+    const activationMetric = this.processActivationMetric(
+      scopedParams.activationMetric,
+      settings
+    );
+    const { experimentDimensions, unitDimensions } = this.processDimensions(
+      scopedParams.dimensions,
+      settings,
+      activationMetric
+    );
+
+    // Get base id type to reference id column names
+    const exposureQuery = this.getExposureQuery(settings.exposureQueryId || "");
+    const { baseIdType } = this.getIdentitiesCTE({
+      objects: [[exposureQuery.userIdType]],
+      from: settings.startDate,
+      to: settings.endDate,
+      forcedBaseIdType: exposureQuery.userIdType,
+      experimentId: settings.experimentId,
+    });
+
+    return format(
+      `
+    CREATE OR REPLACE TABLE ${params.unitsTableFullName}
+    ${this.createUnitsTableOptions()}
+    AS (
+      WITH
+        ${this.getExperimentUnitsQuery(scopedParams)}
+      , __lookbackUnits AS (
+        SELECT * FROM __experimentUnits
+      )
+      , __oldUnits AS (
+        SELECT
+          ${baseIdType} as ${baseIdType}
+          , variation as variation
+          , first_exposure_timestamp as first_exposure_timestamp
+          ${unitDimensions
+            .map(
+              (d) => `, dim_unit_${d.dimension.id} as dim_unit_${d.dimension.id}`
+            )
+            .join("\n")}
+          ${experimentDimensions
+            .map((d) => `, dim_exp_${d.id} as dim_exp_${d.id}`)
+            .join("\n")}
+          ${activationMetric ? `, first_activation_timestamp` : ""}
+        FROM ${params.existingUnitsTableFullName}
+      )
+      , __appendedUnits AS (
+        SELECT * FROM __lookbackUnits
+        UNION ALL
+        SELECT * FROM __oldUnits
+      )
+      SELECT
+        ${baseIdType} as ${baseIdType}
+        , ${this.ifElse(
+          "count(distinct variation) > 1",
+          "'__multiple__'",
+          "max(variation)"
+        )} as variation
+        , MIN(first_exposure_timestamp) AS first_exposure_timestamp
+        ${unitDimensions
+          .map(
+            (d) =>
+              `, COALESCE(MAX(dim_unit_${d.dimension.id}), ${this.castToString(
+                "''"
+              )}) as dim_unit_${d.dimension.id}`
+          )
+          .join("\n")}
+        ${experimentDimensions
+          .map(
+            (d) =>
+              `, COALESCE(MAX(dim_exp_${d.id}), ${this.castToString(
+                "''"
+              )}) as dim_exp_${d.id}`
+          )
+          .join("\n")}
+        ${activationMetric ? `, MIN(first_activation_timestamp) as first_activation_timestamp` : ""}
+      FROM __appendedUnits
+      GROUP BY ${baseIdType}
     );
     `,
       this.getFormatDialect()

@@ -188,6 +188,8 @@ export type DataSourcePipelineSettings = {
   writeDataset?: string; // the mid level name (aka schema)
   unitsTableRetentionHours?: number;
   unitsTableDeletion?: boolean;
+  incrementalUnitsEnabled?: boolean;
+  unitsLookbackDays?: number; // number of days to look back when incrementally updating units
 };
 
 export type MaterializedColumnType = "" | "identifier" | "dimension";
