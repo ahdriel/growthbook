@@ -1802,6 +1802,95 @@ export default abstract class SqlIntegration
     );
   }
 
+  getCreateOrUpdateExperimentUnitsCacheQuery(
+    params: ExperimentUnitsQueryParams & {
+      fullTablePath: string;
+      tableExists: boolean;
+    }
+  ): string {
+    const { settings } = params;
+    const exposureQuery = this.getExposureQuery(settings.exposureQueryId || "");
+    const baseIdType = exposureQuery.userIdType;
+
+    // Determine dimensions present so we can dedupe with aggregations
+    const { experimentDimensions, unitDimensions } = this.processDimensions(
+      params.dimensions,
+      settings,
+      this.processActivationMetric(params.activationMetric, settings)
+    );
+
+    const hasActivationMetric = !!this.processActivationMetric(
+      params.activationMetric,
+      settings
+    );
+
+    const lastSeenCte = params.tableExists
+      ? `, __last_seen as (SELECT MAX(first_exposure_timestamp) as last_ts FROM ${params.fullTablePath})`
+      : "";
+
+    const additionalWhere = params.tableExists
+      ? "e.timestamp > (SELECT last_ts FROM __last_seen)"
+      : "";
+
+    const unitsCte = this.getExperimentUnitsQuery({
+      ...params,
+      includeIdJoins: true,
+      additionalExposureWhereClause: additionalWhere,
+    });
+
+    const existingCte = params.tableExists
+      ? `, __existing as (SELECT * FROM ${params.fullTablePath})`
+      : "";
+
+    const combinedCte = params.tableExists
+      ? `, __combined as (
+        SELECT * FROM __experimentUnits
+        UNION ALL
+        SELECT * FROM __existing
+      )`
+      : `, __combined as (
+        SELECT * FROM __experimentUnits
+      )`;
+
+    const dimensionAggs = [
+      ...unitDimensions.map(
+        (d) => `, MAX(dim_unit_${d.dimension.id}) as dim_unit_${d.dimension.id}`
+      ),
+      ...experimentDimensions.map(
+        (d) => `, MAX(dim_exp_${d.id}) as dim_exp_${d.id}`
+      ),
+      ...(hasActivationMetric
+        ? [
+            ", MIN(first_activation_timestamp) as first_activation_timestamp",
+          ]
+        : []),
+    ].join("\n");
+
+    const sql = `
+    WITH
+      ${unitsCte}
+      ${lastSeenCte}
+      ${existingCte}
+      ${combinedCte}
+    CREATE OR REPLACE TABLE ${params.fullTablePath}
+    ${this.createUnitsTableOptions()}
+    AS
+    SELECT
+      ${baseIdType} as ${baseIdType}
+      , ${this.ifElse(
+        "COUNT(DISTINCT variation) > 1",
+        "'__multiple__'",
+        "MAX(variation)"
+      )} AS variation
+      , MIN(first_exposure_timestamp) AS first_exposure_timestamp
+      ${dimensionAggs}
+    FROM __combined
+    GROUP BY ${baseIdType}
+    `;
+
+    return format(sql, this.getFormatDialect());
+  }
+
   processActivationMetric(
     activationMetricDoc: null | ExperimentMetricInterface,
     settings: ExperimentSnapshotSettings
@@ -1943,6 +2032,7 @@ export default abstract class SqlIntegration
               : ""
           }
           ${settings.queryFilter ? `AND (\n${settings.queryFilter}\n)` : ""}
+          ${params.additionalExposureWhereClause ? `AND (\n${params.additionalExposureWhereClause}\n)` : ""}
     )
     ${
       activationMetric

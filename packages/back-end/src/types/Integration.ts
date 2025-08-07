@@ -188,6 +188,7 @@ interface ExperimentBaseQueryParams {
 
 export interface ExperimentUnitsQueryParams extends ExperimentBaseQueryParams {
   includeIdJoins: boolean;
+  additionalExposureWhereClause?: string;
 }
 
 type UnitsSource = "exposureQuery" | "exposureTable" | "otherQuery";
