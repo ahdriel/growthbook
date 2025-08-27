@@ -1,0 +1,35 @@
+name: Validate Data Source Integrations
+permissions: {}
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - { engine: "bigquery" }
+          - { engine: "clickhouse" }
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+          cache: "pip"
+      - run: |
+          yarn install
+          pip install pipx
+          pipx install poetry
+      - run: |
+          cd packages/back-end
+          yarn dev &
+          sleep 10
+      - run: |
+          cd packages/back-end
+          yarn test-integration-queries

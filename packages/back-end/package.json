@@ -20,7 +20,7 @@
     "type-check": "tsc --pretty --noEmit",
     "unused-export-check": "npx ts-unused-exports tsconfig.json --findCompletelyUnusedFiles --allowUnusedTypes --showLineNumber",
     "generate-dummy-data": "ts-node ./test/data-generator/new-generator.ts",
-    "test-integration-queries": "./test/integrations/integration-query-test.sh",
+    "test-integration-queries": "./test/integrations/simple.sh",
     "watch-compile": "swc src -w --out-dir dist",
     "watch-dev": "delay 1 && nodemon --exec 'node --enable-source-maps' --watch dist --watch '../shared/dist' -e js ./dist/server.js",
     "migrate-encryption-key": "node dist/scripts/migrate-encryption-key.js",
