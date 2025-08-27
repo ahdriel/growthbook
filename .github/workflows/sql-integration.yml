@@ -26,10 +26,11 @@ jobs:
           yarn install
           pip install pipx
           pipx install poetry
+          yarn build
       - run: |
           cd packages/back-end
-          yarn dev &
-          sleep 10
+          yarn start &
+          sleep 20
       - run: |
           cd packages/back-end
           yarn test-integration-queries
