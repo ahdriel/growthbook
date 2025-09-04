@@ -236,10 +236,14 @@ export const startExperimentResultQueries = async (
       hasPipelineModeFeature) ??
     false;
   let unitQuery: QueryPointer | null = null;
+  const useIncrementalUnits = !!settings.pipelineSettings?.incrementalUnitsEnabled;
+  const unitsTableName = useIncrementalUnits
+    ? `${UNITS_TABLE_PREFIX}_${snapshotSettings.experimentId}`
+    : `${UNITS_TABLE_PREFIX}_${queryParentId}`;
   const unitsTableFullName =
     useUnitsTable && !!integration.generateTablePath
       ? integration.generateTablePath(
-          `${UNITS_TABLE_PREFIX}_${queryParentId}`,
+          unitsTableName,
           settings.pipelineSettings?.writeDataset,
           settings.pipelineSettings?.writeDatabase,
           true,
@@ -277,15 +281,36 @@ export const startExperimentResultQueries = async (
         "Unable to generate table; table path generator not specified.",
       );
     }
-    unitQuery = await startQuery({
-      name: queryParentId,
-      query: integration.getExperimentUnitsTableQuery(unitQueryParams),
-      dependencies: [],
-      run: (query, setExternalId) =>
-        integration.runExperimentUnitsQuery(query, setExternalId),
-      process: (rows) => rows,
-      queryType: "experimentUnits",
-    });
+    const lookbackDays = settings.pipelineSettings?.unitsLookbackDays ?? 30;
+    const lookbackStart = addDays(new Date(), -lookbackDays);
+
+    // If incremental, try to run MERGE-style update; else overwrite
+    if (useIncrementalUnits && (integration as SqlIntegration).getIncrementalExperimentUnitsTableQuery) {
+      unitQuery = await startQuery({
+        name: queryParentId,
+        query: (integration as SqlIntegration).getIncrementalExperimentUnitsTableQuery({
+          ...unitQueryParams,
+          unitsTableFullName: unitsTableFullName,
+          existingUnitsTableFullName: unitsTableFullName,
+          lookbackStart,
+        } as any),
+        dependencies: [],
+        run: (query, setExternalId) =>
+          integration.runExperimentUnitsQuery(query, setExternalId),
+        process: (rows) => rows,
+        queryType: "experimentUnits",
+      });
+    } else {
+      unitQuery = await startQuery({
+        name: queryParentId,
+        query: integration.getExperimentUnitsTableQuery(unitQueryParams),
+        dependencies: [],
+        run: (query, setExternalId) =>
+          integration.runExperimentUnitsQuery(query, setExternalId),
+        process: (rows) => rows,
+        queryType: "experimentUnits",
+      });
+    }
     queries.push(unitQuery);
   }
 
@@ -398,7 +423,7 @@ export const startExperimentResultQueries = async (
   const dropUnitsTable =
     integration.getSourceProperties().dropUnitsTable &&
     settings.pipelineSettings?.unitsTableDeletion;
-  if (useUnitsTable && dropUnitsTable) {
+  if (useUnitsTable && dropUnitsTable && !useIncrementalUnits) {
     const dropUnitsTableQuery = await startQuery({
       name: `drop_${queryParentId}`,
       query: integration.getDropUnitsTableQuery({

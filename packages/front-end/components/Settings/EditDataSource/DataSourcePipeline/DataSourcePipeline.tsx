@@ -94,6 +94,16 @@ export default function DataSourcePipeline({
                       {pipelineSettings?.unitsTableRetentionHours ?? 24}
                     </Box>
                   )}
+                  <Box mt="2">
+                    {"Incremental units refresh: "}
+                    {pipelineSettings?.incrementalUnitsEnabled ? "Enabled" : "Disabled"}
+                  </Box>
+                  {pipelineSettings?.incrementalUnitsEnabled && (
+                    <Box mt="2">
+                      {"Units lookback (days): "}
+                      {pipelineSettings?.unitsLookbackDays ?? 30}
+                    </Box>
+                  )}
                 </>
               )}
             </Box>

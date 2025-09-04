@@ -34,12 +34,16 @@ export const EditDataSourcePipeline: FC<EditDataSourcePipelineProps> = ({
         dataSource.settings.pipelineSettings?.unitsTableRetentionHours ?? 24,
       unitsTableDeletion:
         dataSource.settings.pipelineSettings?.unitsTableDeletion ?? true,
+      incrementalUnitsEnabled:
+        dataSource.settings.pipelineSettings?.incrementalUnitsEnabled ?? false,
+      unitsLookbackDays:
+        dataSource.settings.pipelineSettings?.unitsLookbackDays ?? 30,
     },
   });
 
   const handleSubmit = form.handleSubmit(async (value) => {
     const copy = cloneDeep<DataSourceInterfaceWithParams>(dataSource);
-    copy.settings.pipelineSettings = value;
+    copy.settings.pipelineSettings = value as any;
     await onSave(copy);
   });
 
@@ -121,6 +125,28 @@ export const EditDataSourcePipeline: FC<EditDataSourcePipelineProps> = ({
                 </div>
               ) : null}
             </>
+          )}
+          <div className="form-inline flex-column align-items-start mb-4 mt-4">
+            <label>
+              Incremental Units Refresh
+            </label>
+            <Toggle
+              id={"toggle-incremental-units"}
+              value={!!form.watch("incrementalUnitsEnabled")}
+              setValue={(value) => {
+                form.setValue("incrementalUnitsEnabled", value);
+              }}/>
+          </div>
+          {form.watch("incrementalUnitsEnabled") && (
+            <div className="form-inline flex-column align-items-start mb-4">
+              <label>Units Lookback (days)</label>
+              <input
+                type="number"
+                min={1}
+                className="form-control"
+                {...form.register("unitsLookbackDays", { valueAsNumber: true })}
+              />
+            </div>
           )}
         </div>
       ) : null}
