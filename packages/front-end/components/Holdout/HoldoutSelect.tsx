@@ -1,15 +1,15 @@
 import { useEffect, useMemo } from "react";
-import { ExperimentInterfaceStringDates } from "back-end/types/experiment";
+import { ExperimentInterfaceStringDates } from "shared/types/experiment";
 import { PiArrowSquareOut, PiLightbulb, PiWarningFill } from "react-icons/pi";
 import { Flex, Text } from "@radix-ui/themes";
 import { useDefinitions } from "@/services/DefinitionsContext";
 import SelectField from "@/components/Forms/SelectField";
 import { useUser } from "@/services/UserContext";
 import { useHoldouts } from "@/hooks/useHoldouts";
-import PremiumCallout from "../Radix/PremiumCallout";
-import Callout from "../Radix/Callout";
-import Link from "../Radix/Link";
-import HelperText from "../Radix/HelperText";
+import PremiumCallout from "@/ui/PremiumCallout";
+import Callout from "@/ui/Callout";
+import Link from "@/ui/Link";
+import HelperText from "@/ui/HelperText";
 
 export const HoldoutSelect = ({
   selectedProject,
@@ -24,7 +24,7 @@ export const HoldoutSelect = ({
 }) => {
   const { getDatasourceById } = useDefinitions();
   const { hasCommercialFeature } = useUser();
-  const { holdouts, experimentsMap, loading } = useHoldouts(selectedProject);
+  const { holdouts, experimentsMap } = useHoldouts();
 
   const hasHoldouts = hasCommercialFeature("holdouts");
 
@@ -36,7 +36,7 @@ export const HoldoutSelect = ({
 
       const experiment = experimentsMap.get(h.experimentId);
 
-      // If the holdout is in draft or is in the analysis period, don't show it
+      // If the holdout is in draft or is in the analysis phase, don't show it
       if (!!h.analysisStartDate || experiment?.status === "draft") {
         return false;
       }
@@ -67,51 +67,49 @@ export const HoldoutSelect = ({
   }, [holdouts, experimentsMap, selectedProject, getDatasourceById]);
 
   useEffect(() => {
-    // If still loading, don't set anything
-    if (loading) return;
-
-    // Only set initial value once or when selectedHoldoutId is not valid
-    if (
-      !selectedHoldoutId ||
-      (!holdoutsWithExperiment.some((h) => h.id === selectedHoldoutId) &&
-        selectedHoldoutId !== "none")
-    ) {
-      if (holdoutsWithExperiment.length === 0) {
-        setHoldout("none");
-      } else {
-        setHoldout(holdoutsWithExperiment[0].id);
-      }
+    // check to see if the holdout still exists and if not, set the holdout to the first valid holdout
+    if (!holdoutsWithExperiment.some((h) => h.id === selectedHoldoutId)) {
+      setHoldout(holdoutsWithExperiment[0]?.id ?? "");
     }
-  }, [holdoutsWithExperiment, setHoldout, loading, selectedHoldoutId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holdoutsWithExperiment]);
+
+  if (!hasHoldouts) {
+    return (
+      <PremiumCallout
+        id="holdout-select-promo"
+        commercialFeature="holdouts"
+        dismissable={true}
+        mt="3"
+        mb="3"
+      >
+        <Flex direction="row" gap="3">
+          <Text>
+            Use Holdouts to isolate units and measure the cumulative impact of
+            changes.
+          </Text>
+        </Flex>
+      </PremiumCallout>
+    );
+  }
 
   if (holdoutsWithExperiment.length === 0) {
-    if (!hasHoldouts) {
-      return (
-        <PremiumCallout
-          id="holdout-select-promo"
-          commercialFeature="holdouts"
-          mt="3"
-          mb="3"
-        >
-          <Flex direction="row" gap="3">
-            <Text>
-              Use Holdouts to isolate units and measure the true impact of
-              changes.
-            </Text>
-          </Flex>
-        </PremiumCallout>
-      );
-    } else {
-      return (
-        <Callout mt="3" mb="3" status="info" icon={<PiLightbulb size={15} />}>
-          Use <strong>Holdouts</strong> to isolate units and measure the true
-          impact of changes. {/* TODO: Replace with link to holdout docs */}
-          <Link target="_blank" href="https://docs.growthbook.io/">
-            Show me how <PiArrowSquareOut size={15} />
-          </Link>
-        </Callout>
-      );
-    }
+    return (
+      <Callout
+        mt="3"
+        mb="3"
+        status="info"
+        icon={<PiLightbulb size={15} />}
+        dismissible
+        id="holdout-select-promo"
+      >
+        Use <strong>Holdouts</strong> to isolate units and measure the
+        cumulative impact of changes.{" "}
+        <Link target="_blank" href="https://docs.growthbook.io/app/holdouts">
+          Show me how <PiArrowSquareOut size={15} />
+        </Link>
+      </Callout>
+    );
   }
 
   return (
@@ -119,7 +117,7 @@ export const HoldoutSelect = ({
       <SelectField
         label="Holdout"
         labelClassName="font-weight-bold"
-        value={selectedHoldoutId || "none"}
+        value={selectedHoldoutId || ""}
         onChange={(v) => {
           setHoldout(v);
         }}
@@ -133,9 +131,8 @@ export const HoldoutSelect = ({
               value: h.id,
             };
           }) || []),
-          { label: "None", value: "none" },
+          { label: "None", value: "" },
         ]}
-        required={holdoutsWithExperiment.length > 0}
         disabled={holdoutsWithExperiment.length === 0}
         sort={false}
         formatOptionLabel={({ label, value }) => {
@@ -152,7 +149,7 @@ export const HoldoutSelect = ({
                 >
                   Identifier Type: <code>{userIdType}</code>
                 </span>
-              ) : value === "none" ? (
+              ) : value === "" ? (
                 <span className="text-muted small float-right position-relative">
                   Override Holdout requirement{" "}
                   <PiWarningFill
@@ -165,7 +162,7 @@ export const HoldoutSelect = ({
           );
         }}
       />
-      {holdoutsWithExperiment.length > 0 && selectedHoldoutId === "none" && (
+      {holdoutsWithExperiment.length > 0 && selectedHoldoutId === "" && (
         <HelperText status="warning" size="sm" mb="3">
           Exempting this {formType} from a holdout may impact your
           organization&apos;s analysis. Proceed with caution.

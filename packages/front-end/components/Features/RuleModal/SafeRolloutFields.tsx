@@ -1,6 +1,5 @@
 import { useFormContext } from "react-hook-form";
-import { FeatureInterface, FeatureRule } from "back-end/types/feature";
-import { FeatureRevisionInterface } from "back-end/types/feature-revision";
+import { FeatureInterface, FeatureRule } from "shared/types/feature";
 import { FaExclamationTriangle } from "react-icons/fa";
 import { Box, TextField, Text, Flex, Grid } from "@radix-ui/themes";
 import {
@@ -13,15 +12,16 @@ import { useState } from "react";
 import { useGrowthBook } from "@growthbook/growthbook-react";
 import FeatureValueField from "@/components/Features/FeatureValueField";
 import SelectField from "@/components/Forms/SelectField";
+import { FIVE_LINES_HEIGHT } from "@/components/Forms/CodeTextArea";
 import { NewExperimentRefRule, useAttributeSchema } from "@/services/features";
 import SavedGroupTargetingField from "@/components/Features/SavedGroupTargetingField";
 import ConditionInput from "@/components/Features/ConditionInput";
-import PrerequisiteTargetingField from "@/components/Features/PrerequisiteTargetingField";
+import PrerequisiteInput from "@/components/Features/PrerequisiteInput";
 import { useDefinitions } from "@/services/DefinitionsContext";
 import MetricsSelector from "@/components/Experiment/MetricsSelector";
-import Checkbox from "@/components/Radix/Checkbox";
+import Checkbox from "@/ui/Checkbox";
 import useOrgSettings from "@/hooks/useOrgSettings";
-import HelperText from "@/components/Radix/HelperText";
+import HelperText from "@/ui/HelperText";
 import Tooltip from "@/components/Tooltip/Tooltip";
 import ScheduleInputs from "@/components/Features/ScheduleInputs";
 import { AppFeatures } from "@/types/app-features";
@@ -29,15 +29,12 @@ import { AppFeatures } from "@/types/app-features";
 export default function SafeRolloutFields({
   feature,
   environment,
-  version,
-  revisions,
   setPrerequisiteTargetingSdkIssues,
   isCyclic,
   cyclicFeatureId,
   conditionKey,
-  isNewRule,
+  mode,
   isDraft,
-  duplicate,
   defaultValues,
   setScheduleToggleEnabled,
   scheduleToggleEnabled,
@@ -45,17 +42,14 @@ export default function SafeRolloutFields({
   feature: FeatureInterface;
   environment: string;
   defaultValues: FeatureRule | NewExperimentRefRule;
-  version: number;
-  revisions?: FeatureRevisionInterface[];
   setPrerequisiteTargetingSdkIssues: (b: boolean) => void;
   isCyclic: boolean;
   cyclicFeatureId: string | null;
   conditionKey: number;
   scheduleToggleEnabled: boolean;
   setScheduleToggleEnabled: (b: boolean) => void;
-  isNewRule: boolean;
+  mode: "create" | "edit" | "duplicate";
   isDraft: boolean;
-  duplicate: boolean;
 }) {
   const form = useFormContext();
   const [advancedOptionsOpen, setAdvancedOptionsOpen] = useState(false);
@@ -66,7 +60,7 @@ export default function SafeRolloutFields({
   const { datasources } = useDefinitions();
   const [controlValueDisabled, setControlValueDisabled] = useState(true);
 
-  const disableFields = !isDraft && !isNewRule;
+  const disableFields = !isDraft && mode !== "create";
   const dataSourceOptions =
     datasources?.map((ds) => ({
       label: ds.name,
@@ -112,14 +106,12 @@ export default function SafeRolloutFields({
           project={feature.project || ""}
         />
         <hr />
-        <PrerequisiteTargetingField
+        <PrerequisiteInput
           value={form.watch("prerequisites") || []}
           setValue={(prerequisites) =>
             form.setValue("prerequisites", prerequisites)
           }
           feature={feature}
-          revisions={revisions}
-          version={version}
           environments={[environment]}
           setPrerequisiteTargetingSdkIssues={setPrerequisiteTargetingSdkIssues}
         />
@@ -131,7 +123,7 @@ export default function SafeRolloutFields({
           </div>
         )}
 
-        {duplicate && !!form.watch("seed") && (
+        {mode === "duplicate" && !!form.watch("seed") && (
           <div
             className="ml-auto link-purple cursor-pointer mb-2"
             onClick={(e) => {
@@ -147,15 +139,17 @@ export default function SafeRolloutFields({
             Advanced Options
           </div>
         )}
-        {duplicate && !!form.watch("seed") && advancedOptionsOpen && (
-          <div className="ml-2">
-            <Checkbox
-              value={form.watch("sameSeed")}
-              setValue={(value: boolean) => form.setValue("sameSeed", value)}
-              label="Same seed"
-            />
-          </div>
-        )}
+        {mode === "duplicate" &&
+          !!form.watch("seed") &&
+          advancedOptionsOpen && (
+            <div className="ml-2">
+              <Checkbox
+                value={form.watch("sameSeed")}
+                setValue={(value: boolean) => form.setValue("sameSeed", value)}
+                label="Same seed"
+              />
+            </div>
+          )}
       </>
     );
   };
@@ -394,6 +388,9 @@ export default function SafeRolloutFields({
               renderJSONInline={true}
               disabled={disableFields || controlValueDisabled}
               useDropdown={true}
+              useCodeInput={true}
+              showFullscreenButton={true}
+              codeInputDefaultHeight={FIVE_LINES_HEIGHT}
             />
           </Box>
           <Box
@@ -416,6 +413,9 @@ export default function SafeRolloutFields({
               renderJSONInline={true}
               disabled={disableFields}
               useDropdown={true}
+              useCodeInput={true}
+              showFullscreenButton={true}
+              codeInputDefaultHeight={FIVE_LINES_HEIGHT}
             />
           </Box>
         </Grid>

@@ -1,13 +1,13 @@
-import { ExperimentResultStatusData } from "back-end/types/experiment";
-import { HoldoutInterface } from "back-end/src/routers/holdout/holdout.validators";
-import Button from "@/components/Radix/Button";
+import { ExperimentResultStatusData } from "shared/types/experiment";
+import { HoldoutInterfaceStringDates } from "shared/validators";
+import Button from "@/ui/Button";
 
 export interface Props {
   editResult?: () => void;
   editTargeting?: (() => void) | null;
   isBandit?: boolean;
   runningExperimentStatus?: ExperimentResultStatusData;
-  holdout?: HoldoutInterface;
+  holdout?: HoldoutInterfaceStringDates;
 }
 
 export default function ExperimentActionButtons({
@@ -26,7 +26,7 @@ export default function ExperimentActionButtons({
   const displayCTAText = () => {
     if (holdout) {
       return !holdout?.analysisStartDate
-        ? "Start Analysis Period"
+        ? "Start Analysis Phase"
         : "Stop Holdout";
     }
     if (readyForDecision) {
