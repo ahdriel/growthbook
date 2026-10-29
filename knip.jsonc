@@ -1,0 +1,77 @@
+{
+  // Finds unused files, exports, and dependencies. Run with `pnpm knip`.
+  // Entries ending in `!` are production entries (`pnpm knip --production`).
+  // Entries below cover what knip's plugins can't see: runtime entry points,
+  // files loaded by path (fork, --require, Dockerfile), and shim files.
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // Python package; nothing for knip to analyze.
+  "ignoreWorkspaces": ["packages/stats"],
+  // Shell builtin and tools installed outside npm.
+  "ignoreBinaries": ["wait", "mint", "poetry"],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/**/*.{js,mjs}",
+        "ecosystem.config.js!",
+        "preview/*.js!",
+      ],
+      // Mintlify docs: snippets are loaded by the docs site, not by imports.
+      "ignore": ["docs/**"],
+      "ignoreDependencies": [
+        // Loaded by name through FlatCompat ("plugin:react-hooks/recommended").
+        "eslint-plugin-react-hooks",
+      ],
+    },
+    "packages/back-end": {
+      "entry": [
+        "src/server.ts!",
+        // Preloaded with `node --require`.
+        "src/tracing.*.ts!",
+        // Started with child_process.fork() by sandbox-pool.ts.
+        "src/enterprise/sandbox/sandbox-worker.ts!",
+        "src/scripts/**/*.ts",
+        "scripts/**/*.{ts,js,mjs}",
+        "repl.ts",
+        "test/**/*.{ts,js,mjs}",
+      ],
+      "project": [
+        "src/**/*.ts!",
+        "test/**/*.{ts,js,mjs}",
+        "scripts/**/*.{ts,js,mjs}",
+      ],
+      "ignoreDependencies": [
+        // Optional native add-ons dd-trace loads at runtime (#5222).
+        "@datadog/native-metrics",
+        "@datadog/pprof",
+        // Pinned so the Docker build gets the Sentry CLI binary (#5231).
+        "@sentry/cli-linux-x64",
+        // Required by name by the OTel winston instrumentation; snowflake-sdk
+        // and @databricks/sql log through winston (#2806).
+        "@opentelemetry/winston-transport",
+        // Kept for native add-on builds (#5278).
+        "node-gyp",
+      ],
+    },
+    "packages/front-end": {
+      "ignoreDependencies": [
+        // Imported from styles/global.scss, which knip doesn't parse.
+        "bootstrap",
+        // Used through `<style jsx>` in pages/_app.tsx.
+        "styled-jsx",
+      ],
+    },
+    "packages/shared": {
+      "entry": ["scripts/*.ts"],
+      // Root `shared/<module>` shims re-export src/; knip resolves imports
+      // straight to src/, so the shims themselves look unused.
+      "ignoreFiles": ["*.d.ts", "*.ts"],
+      // shared imports itself as `shared/...`.
+      "ignoreDependencies": ["shared"],
+    },
+    "packages/sdk-js": {
+      "entry": ["test/performance/*.ts", "scripts/*.js"],
+      // `@growthbook/growthbook/plugins` shim for resolvers without `exports`.
+      "ignoreFiles": ["plugins/index.js"],
+    },
+  },
+}
